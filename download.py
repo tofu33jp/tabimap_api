@@ -1,7 +1,7 @@
 import geopandas as gpd
 import pandas as pd
 import numpy as np
-import zipfile, tempfile, requests, io, os, pathlib
+import zipfile, tempfile, requests, io, os, pathlib, time
 from tqdm import tqdm
 
 # def fetch(url):
@@ -28,7 +28,7 @@ from tqdm import tqdm
 def download_bus():
     # バス停
     # SEE: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-P11-2022.html
-    gdf = []
+    gdf_bus = []
     for i in tqdm(range(1,48)):
         url = f"https://nlftp.mlit.go.jp/ksj/gml/data/P11/P11-22/P11-22_{i:02}_SHP.zip"
         r = requests.get(url)
@@ -39,19 +39,49 @@ def download_bus():
                 z.extractall(tmpdir)
                 filepath = pathlib.Path(tmpdir) / pathlib.Path(f"P11-22_{i:02}_SHP/P11-22_{i:02}.shp")
                 # filepath = os.path.join(tmpdir, f"P11-22_{i:02}_SHP/P11-22_{i:02}.shp")
-                gdf.append(gpd.read_file(filepath))
+                gdf_bus.append(gpd.read_file(filepath))
         # if i>3: break
-    gdf = pd.concat(gdf)
-    # print(gdf.head())
-    # print(gdf.shape)
-    gdf = gdf[["P11_001","P11_002","P11_003_01","geometry"]]
-    gdf = gdf.rename(columns={"P11_001": "name"})
-    gdf["description"] = gdf["P11_002"] + " " + gdf["P11_003_01"]
+        time.sleep(1)
+    gdf_bus = pd.concat(gdf_bus)
+    # print(gdf_bus.head())
+    # print(gdf_bus.shape)
+    gdf_bus = gdf_bus.rename(columns={"P11_001": "name"})
+    gdf_bus["type"] = "BUS"
+    gdf_bus["description"] = gdf_bus["P11_002"] + " " + gdf_bus["P11_003_01"]
+    gdf_bus = gdf_bus[["name","type","description","geometry"]]
+
+    # 高速バス
+    # SEE: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-P36-2023.html
+    gdf_exbus = []
+    for i in tqdm(range(1,48)):
+        url = f"https://nlftp.mlit.go.jp/ksj/gml/data/P36/P36-23/P36-23_{i:02}_SHP.zip"
+        r = requests.get(url)
+        r.raise_for_status()
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            # shapeデータは.shpファイルなど複数に分かれており、同じフォルダにないと読み込めない
+            with tempfile.TemporaryDirectory() as tmpdir:
+                z.extractall(tmpdir)
+                # items = os.listdir(tmpdir)
+                # print(items)
+                filepath = pathlib.Path(tmpdir) / pathlib.Path(f"P36-23_{i:02}_SHP/P36-23_{i:02}.shp")
+                # filepath = os.path.join(tmpdir, f"P11-22_{i:02}_SHP/P11-22_{i:02}.shp")
+                gdf_exbus.append(gpd.read_file(filepath))
+        # if i>3: break
+        time.sleep(1)
+    gdf_exbus = pd.concat(gdf_exbus)
+    # print(gdf_exbus.head())
+    # print(gdf_exbus.shape)
+    gdf_exbus = gdf_exbus.rename(columns={"P36_001": "name"})
+    gdf_exbus["type"] = "EXBUS"
+    gdf_exbus["description"] = gdf_exbus["P36_002"] + " " + gdf_exbus["P36_003_01"]
+    gdf_exbus = gdf_exbus[["name","type","description","geometry"]]
+
+    gdf = pd.concat([gdf_exbus, gdf_bus])
     gdf = gdf.groupby("geometry", as_index=False).agg({
                                                     "name": "first",
+                                                    "type": "min",  # 高速バス優先
                                                     "description": lambda s: "<br>".join(s)
                                                 })
-    gdf["type"] = "BUS"
     print(gdf.head())
     print(gdf.shape)
     return gdf
