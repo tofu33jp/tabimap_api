@@ -20,6 +20,8 @@ app.add_middleware(
 print("Loading data...")
 gdf = gpd.read_file("points.geojson")
 spatial_index = gdf.sindex
+lines_gdf = gpd.read_file("lines.geojson")
+lines_spatial_index = lines_gdf.sindex
 
 @app.get("/points")
 def get_points(west: float, south: float, east: float, north: float):
@@ -29,6 +31,16 @@ def get_points(west: float, south: float, east: float, north: float):
     precise_matches = subset[subset.intersects(bbox)]
     
     # ujsonを使って高速に変換
+    return ujson.loads(precise_matches.to_json())
+
+@app.get("/lines")
+def get_lines(west: float, south: float, east: float, north: float):
+    bbox = box(west, south, east, north)
+    possible_matches_index = list(lines_spatial_index.intersection(bbox.bounds))
+    subset = lines_gdf.iloc[possible_matches_index]
+    precise_matches = subset[subset.intersects(bbox)]
+    
+    # GeoJSON形式で返却
     return ujson.loads(precise_matches.to_json())
 
 if __name__ == "__main__":
