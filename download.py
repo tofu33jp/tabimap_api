@@ -68,6 +68,17 @@ def download_bus():
     gdf.to_file("bus.geojson", driver="GeoJSON")
     return gdf
 
+def download_busline():
+    # バスライン
+    # SEE: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07-2022.html
+    url = "https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_SHP.zip"
+    target_shape = "N07-22_SHP/N07-22.shp"
+    gdf = unzip(fetch(url), target_shape)
+
+    gdf = gdf["geometry"]
+    gdf.to_file("busline.geojson", driver="GeoJSON")
+    return gdf
+
 def download_railway():
     # 鉄道
     # SEE: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2024.html
@@ -150,3 +161,6 @@ gdf.append(download_ferryport())
 gdf = pd.concat(gdf)
 gdf = gpd.GeoDataFrame(gdf).to_crs(6668)
 gdf.to_file("points.geojson", driver="GeoJSON")
+
+gdf = download_busline()
+gdf.to_file("lines.geojson", driver="GeoJSON")
