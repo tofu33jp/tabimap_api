@@ -18,9 +18,9 @@ app.add_middleware(
 # データの読み込み
 # points.geojson は main.py と同じフォルダに置いてください
 print("Loading data...")
-gdf = gpd.read_file("points.geojson")
+gdf = gpd.read_parquet("points.parquet")
 spatial_index = gdf.sindex
-lines_gdf = gpd.read_file("lines.geojson")
+lines_gdf = gpd.read_parquet("lines.parquet")
 lines_spatial_index = lines_gdf.sindex
 
 @app.get("/points")

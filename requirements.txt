@@ -4,3 +4,4 @@ geopandas
 shapely
 ujson
 pyogrio
+pyarrow
