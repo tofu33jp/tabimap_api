@@ -103,7 +103,7 @@ def download_airport():
     gdf["description"] = "-"
     gdf["type"] = "PORT"
     gdf["geometry"] = gdf["geometry"].centroid
-    gdf = gdf.groupby("name").first()
+    gdf = gdf.groupby("name", as_index=False).first()
     gdf = gdf.set_crs("EPSG:4612").to_crs(6668)
     gdf.to_file("airport.geojson", driver="GeoJSON")
     return gdf
@@ -128,16 +128,15 @@ def download_ferryport():
     gdf1 = gdf1.rename(columns={"name1": "name", "point1": "geometry"})
     gdf2 = gdf2.rename(columns={"name2": "name", "point2": "geometry"})
     gdf = pd.concat([gdf1, gdf2])
-    gdf = gdf.groupby("geometry").agg({
-                                  "name": "first",
-                                  "description": set,
-                                  "geometry": "first"
-                                }).reset_index(drop=True)
+    gdf = gdf.groupby("geometry", as_index=False).agg({
+                                                  "name": "first",
+                                                  "description": set
+                                                })
     gdf["description"] = gdf["description"].apply(lambda s: "<br>".join(s))
-    gdf = gdf.groupby("name").agg({
-                                  "description": lambda s: "<br>".join(s),
-                                  "geometry": "first"  # TMP
-                                }).reset_index()
+    gdf = gdf.groupby("name", as_index=False).agg({
+                                              "description": lambda s: "<br>".join(s),
+                                              "geometry": "first"  # TMP
+                                            })
     gdf["type"] = "PORT"
     gdf = gpd.GeoDataFrame(gdf, crs="EPSG:4612").to_crs(6668)
     gdf.to_file("ferryport.geojson", driver="GeoJSON")
