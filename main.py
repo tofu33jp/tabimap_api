@@ -22,6 +22,8 @@ gdf = gpd.read_parquet("points.parquet")
 spatial_index = gdf.sindex
 lines_gdf = gpd.read_parquet("lines.parquet")
 lines_spatial_index = lines_gdf.sindex
+polygons_gdf = gpd.read_parquet("polygons.parquet")
+polygons_spatial_index = polygons_gdf.sindex
 
 @app.get("/points")
 def get_points(west: float, south: float, east: float, north: float):
@@ -41,6 +43,15 @@ def get_lines(west: float, south: float, east: float, north: float):
     precise_matches = subset[subset.intersects(bbox)]
     
     # GeoJSON形式で返却
+    return ujson.loads(precise_matches.to_json())
+
+@app.get("/polygons")
+def get_polygons(west: float, south: float, east: float, north: float):
+    bbox = box(west, south, east, north)
+    possible_matches_index = list(polygons_spatial_index.intersection(bbox.bounds))
+    subset = polygons_gdf.iloc[possible_matches_index]
+    precise_matches = subset[subset.intersects(bbox)]
+
     return ujson.loads(precise_matches.to_json())
 
 if __name__ == "__main__":
